@@ -8,7 +8,7 @@ fn get_obsidian_folder() -> String {
     match env::consts::OS {
         "linux" => {
             let config_string =
-                env::var("HOME").expect("Should be able to find $HOME") + "/.config/obsidian";
+                env::var("HOME").expect("Couldn't find HOME folder") + "/.config/obsidian";
             if !path::Path::new(&config_string).exists() {
                 let config_string = match env::var("XDG_CONGIG_HOME") {
                     Ok(s) => s + "/obsidian",
@@ -22,6 +22,14 @@ fn get_obsidian_folder() -> String {
                 return config_string;
             }
 
+            return config_string;
+        }
+        "windows" => {
+            let config_string =
+                env::var("APPDATA").expect("Couldn't find APPDATA folder") + "\\obsidian";
+            if !path::Path::new(&config_string).exists() {
+                panic!("Could not find obsidian config folder");
+            }
             return config_string;
         }
         _ => panic!("Systems is not supported!"),

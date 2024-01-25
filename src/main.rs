@@ -1,9 +1,19 @@
+use clap::Parser;
 use core::panic;
 use serde_json::{from_str, Value};
 use std::env;
 use std::fs;
 use std::path;
 use std::path::PathBuf;
+
+#[derive(Parser)]
+#[command(author, version, about, long_about = None)]
+struct Cli {
+    /// Path to the obsidian config folder, if not specified the folder will be searched in the
+    /// default location.
+    #[arg(short, long)]
+    config_path: Option<String>,
+}
 
 fn get_obsidian_folder() -> PathBuf {
     let config_string = match env::consts::OS {
@@ -37,18 +47,14 @@ fn get_obsidian_folder() -> PathBuf {
 }
 
 fn main() {
-    let obsidian_path = get_obsidian_folder();
+    let cli = Cli::parse();
 
-    let file_path = obsidian_path.join("obsidian.json");
-    println!("In file {}", file_path.display());
+    let obsi_path = match cli.config_path {
+        Some(s) => PathBuf::from(s),
+        None => get_obsidian_folder(),
+    };
 
-    let contents = fs::read_to_string(file_path).expect("Should be able to read");
-
-    println!("With text:\n{contents}");
-
-    let v: Value = from_str(&contents).expect("Should be able to extract a Value");
-
-    println!("{v}");
+    println!("Path: {:?}", obsi_path);
 }
 
 #[cfg(test)]

@@ -3,45 +3,41 @@ use serde_json::{from_str, Value};
 use std::env;
 use std::fs;
 use std::path;
+use std::path::PathBuf;
 
-fn get_obsidian_folder() -> String {
-    match env::consts::OS {
+fn get_obsidian_folder() -> PathBuf {
+    let config_string = match env::consts::OS {
         "linux" => {
-            let config_string =
+            let mut config_string =
                 env::var("HOME").expect("Couldn't find HOME folder") + "/.config/obsidian";
             if !path::Path::new(&config_string).exists() {
-                let config_string = match env::var("XDG_CONGIG_HOME") {
+                config_string = match env::var("XDG_CONGIG_HOME") {
                     Ok(s) => s + "/obsidian",
                     Err(_) => panic!("Could not find obsidian config folder"),
                 };
-
-                if !path::Path::new(&config_string).exists() {
-                    panic!("Could not find obsidian config folder");
-                }
-
-                return config_string;
             }
+            config_string
+        }
+        "windows" => env::var("APPDATA").expect("Couldn't find APPDATA folder") + "\\obsidian",
+        "macos" => {
+            "/Users/".to_string()
+                + &env::var("USER").expect("Couldn't find USER folder")
+                + "/Library/Application Support/obsidian"
+        }
+        _ => panic!("System is not supported!"),
+    };
 
-            return config_string;
-        }
-        "windows" => {
-            let config_string =
-                env::var("APPDATA").expect("Couldn't find APPDATA folder") + "\\obsidian";
-            if !path::Path::new(&config_string).exists() {
-                panic!("Could not find obsidian config folder");
-            }
-            return config_string;
-        }
-        _ => panic!("Systems is not supported!"),
+    let config_path = PathBuf::from(config_string);
+
+    if !config_path.exists() {
+        panic!("Could not find obsidian config folder");
     }
+
+    return config_path;
 }
 
 fn main() {
-    // System dependant string
-    let obsidian_string = get_obsidian_folder();
-
-    // System independant path
-    let obsidian_path = path::Path::new(&obsidian_string);
+    let obsidian_path = get_obsidian_folder();
 
     let file_path = obsidian_path.join("obsidian.json");
     println!("In file {}", file_path.display());

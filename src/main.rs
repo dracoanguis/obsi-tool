@@ -2,6 +2,7 @@ mod util;
 use clap::Parser;
 use util::cli::Cli;
 use util::obsidian::*;
+use util::util::*;
 
 fn main() {
     let cli = Cli::parse();
@@ -12,18 +13,17 @@ fn main() {
 
     println!("Obsidian config folder: {}", obsi_path.display());
 
-    let config_path = cli.config_path.unwrap_or_else(|| get_config_folder(None)); //Some("obsi-tool")));
+    let config_path = cli
+        .config_path
+        .unwrap_or_else(|| get_config_folder(Some("obsi-tool")));
 
     println!("Config folder path: {}", config_path.display());
 
     let vaults = get_vault_list(&obsi_path);
 
-    vaults.iter().for_each(|v| {
-        println!(
-            "{}\n Exists: {}; Is dir: {}",
-            v,
-            v.path.exists(),
-            v.path.is_dir()
-        )
-    });
+    vaults
+        .iter()
+        .for_each(|v| println!("{}\n Is valid: {}", v, v.check_validity()));
+
+    println!("Mappings: {:?}", vaults[0].get_mappings());
 }

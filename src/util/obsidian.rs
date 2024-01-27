@@ -9,16 +9,42 @@ pub struct KeySeq {
 }
 
 impl KeySeq {
-    pub fn from_value(value: &Value) -> KeySeq {
-        let ob = value.as_object().unwrap();
-        let modifiers: Vec<String> = ob["modifiers"]
-            .as_array()
-            .unwrap()
-            .into_iter()
-            .map(|v| v.to_string())
-            .collect();
+    pub fn from_value(value: &Value) -> Option<KeySeq> {
+        let ob = match value.as_object() {
+            Some(o) => o,
+            None => return None,
+        };
+        let modifiers: Vec<String> = match ob["modifiers"].as_array() {
+            Some(a) => a.into_iter().map(|v| v.to_string()).collect(),
+            None => return None,
+        };
         let key: String = ob["key"].to_string();
-        return KeySeq { modifiers, key };
+        return Some(KeySeq { modifiers, key });
+    }
+}
+
+#[derive(Debug)]
+pub struct Mapping {
+    pub target: String,
+    pub maps: Vec<KeySeq>,
+}
+
+impl Mapping {
+    pub fn from_target_value(target: &String, value: &Value) -> Option<Mapping> {
+        let arr = match value.as_array() {
+            Some(a) => a,
+            None => return None,
+        };
+        let maps = arr
+            .into_iter()
+            .map(|v| KeySeq::from_value(v))
+            .filter(|oks| matches!(oks, Some(_)))
+            .map(|ks| ks.unwrap())
+            .collect();
+        Some(Mapping {
+            target: target.to_string(),
+            maps,
+        })
     }
 }
 
@@ -36,15 +62,27 @@ impl Vault {
             && self.path.join(".obsidian").is_dir()
     }
 
-    pub fn get_mappings(&self) -> Option<Value> {
+    pub fn get_mappings(&self) -> Option<Vec<Mapping>> {
         let hot_path = self.path.join(".obsidian").join("hotkeys.json");
         if !hot_path.exists() {
             return None;
         }
-        return from_str(
-            &fs::read_to_string(hot_path).expect("Should be able to read hotkeys if exists"),
+        Some(
+            match from_str::<Value>(
+                &fs::read_to_string(hot_path).expect("Should be able to read hotkeys if exists"),
+            )
+            .expect("Should be parseable if readable")
+            .as_object()
+            {
+                Some(o) => o
+                    .into_iter()
+                    .map(|(s, v)| Mapping::from_target_value(s, v))
+                    .filter(|om| matches!(om, Some(_)))
+                    .map(|m| m.unwrap())
+                    .collect(),
+                None => return None,
+            },
         )
-        .expect("Should be parseable if readable");
     }
 }
 

@@ -1,4 +1,5 @@
 use serde_json::{from_str, Value};
+use std::cell::OnceCell;
 use std::path::PathBuf;
 use std::{fmt, fs};
 
@@ -50,8 +51,9 @@ impl Mapping {
 
 #[derive(Debug)]
 pub struct Vault {
-    pub id: String,
-    pub path: PathBuf,
+    id: String,
+    path: PathBuf,
+    mapping: OnceCell<Option<Vec<Mapping>>>,
 }
 
 impl Vault {
@@ -62,7 +64,7 @@ impl Vault {
             && self.path.join(".obsidian").is_dir()
     }
 
-    pub fn get_mappings(&self) -> Option<Vec<Mapping>> {
+    fn create_mappings(&self) -> Option<Vec<Mapping>> {
         let hot_path = self.path.join(".obsidian").join("hotkeys.json");
         if !hot_path.exists() {
             return None;
@@ -83,6 +85,10 @@ impl Vault {
                 None => return None,
             },
         )
+    }
+
+    pub fn get_mappings(&self) -> &Option<Vec<Mapping>> {
+        self.mapping.get_or_init(|| self.create_mappings())
     }
 }
 
@@ -118,6 +124,7 @@ pub fn get_vault_list(obsidian_path: &PathBuf) -> Vec<Vault> {
         .map(|(id, val)| Vault {
             id: id.to_owned(),
             path: PathBuf::from(val["path"].as_str().unwrap()),
+            mapping: OnceCell::new(),
         })
         .collect();
 }

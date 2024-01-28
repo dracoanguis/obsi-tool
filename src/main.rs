@@ -25,5 +25,7 @@ fn main() {
         .iter()
         .for_each(|v| println!("{}\n Is valid: {}", v, v.check_validity()));
 
-    println!("Mappings: {:?}", vaults[0].get_mappings());
+    let mappings = vaults[5].get_mappings();
+
+    mappings.iter().for_each(|m| println!("{:?}", m));
 }
